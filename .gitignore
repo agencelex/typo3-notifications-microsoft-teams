@@ -1,0 +1,13 @@
+.Build/
+.idea/
+Build/testing-docker/.env
+composer.lock
+
+Tests/Packages/
+config/
+packages/*
+!packages/.gitkeep
+var/
+
+/**/._*
+/Documentation-GENERATED-temp

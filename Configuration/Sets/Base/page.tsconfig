@@ -1,0 +1,5 @@
+# Documentation about page.tsconfig : https://docs.typo3.org/m/typo3/reference-typoscript/13.4/en-us/UsingSettingTSconfig/PageTSconfig.html
+# Documentation about page.tsconfig in sets : https://docs.typo3.org/m/typo3/reference-coreapi/13.4/en-us/ApiOverview/SiteHandling/SiteSets.html#site-sets-page-tsconfig
+
+# Make the plugins available in the Backend New Content wizard under the tab Plugin
+@import 'EXT:notifications_microsoft_teams/Configuration/TsConfig/Page/Mod/Wizards/NewContentElement/*.tsconfig'
