@@ -4,11 +4,10 @@ namespace Lex\Notifications\MicrosoftTeams\Channel;
 
 use Lex\Notifications\Channel\ChannelInterface;
 use Lex\Notifications\MicrosoftTeams\Message\TeamsMessage;
-use Lex\Notifications\MicrosoftTeams\Notification\TeamsNotification;
 use Lex\Notifications\Notification;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
-use Symfony\Component\DependencyInjection\Attribute\Autoconfigure;
+use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 use TYPO3\CMS\Core\Http\RequestFactory;
 
 /**
@@ -36,8 +35,8 @@ use TYPO3\CMS\Core\Http\RequestFactory;
  *       }
  *   }
  */
-#[Autoconfigure(public: true)]
-final class TeamsChannel implements ChannelInterface, LoggerAwareInterface
+#[AutoconfigureTag('notifications.channel')]
+class TeamsChannel implements ChannelInterface, LoggerAwareInterface
 {
     use LoggerAwareTrait;
 

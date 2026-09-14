@@ -18,20 +18,20 @@ use Lex\Notifications\MicrosoftTeams\Message\Contract\Renderable;
  *       ->style('emphasis')
  *       ->bleed(true)
  */
-final class Container implements Renderable
+class Container implements Renderable
 {
     use HasCommonBodyProperties;
 
-    private ?string $backgroundImage = null;
-    private ?bool $bleed = null;
-    private ?string $minHeight = null;
-    private ?bool $rtl = null;
-    private ?Renderable $selectAction = null;
-    private ?string $style = null;
-    private ?string $verticalContentAlignment = null;
+    protected ?string $backgroundImage = null;
+    protected ?bool $bleed = null;
+    protected ?string $minHeight = null;
+    protected ?bool $rtl = null;
+    protected ?Renderable $selectAction = null;
+    protected ?string $style = null;
+    protected ?string $verticalContentAlignment = null;
 
     /** @param Renderable[] $items */
-    private function __construct(private array $items = []) {}
+    protected function __construct(protected array $items = []) {}
 
     /** @param Renderable[] $items */
     public static function make(array $items = []): static

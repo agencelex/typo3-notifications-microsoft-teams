@@ -21,14 +21,14 @@ use Lex\Notifications\MicrosoftTeams\Message\Contract\Renderable;
  *       ['type' => 'TextRun', 'text' => 'Active', 'color' => 'Good', 'weight' => 'Bolder'],
  *   ])
  */
-final class RichTextBlock implements Renderable
+class RichTextBlock implements Renderable
 {
     use HasCommonBodyProperties;
 
-    private ?string $horizontalAlignment = null;
+    protected ?string $horizontalAlignment = null;
 
     /** @param array<string|array<string, mixed>> $inlines */
-    private function __construct(private array $inlines = []) {}
+    protected function __construct(private array $inlines = []) {}
 
     /** @param array<string|array<string, mixed>> $inlines */
     public static function make(array $inlines = []): static

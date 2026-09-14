@@ -10,11 +10,11 @@ use Lex\Notifications\MicrosoftTeams\Message\Contract\Renderable;
  * Example:
  *   Fact::make('Status', 'Active')
  */
-final class Fact implements Renderable
+readonly class Fact implements Renderable
 {
-    private function __construct(
-        private string $title,
-        private string $value,
+    protected function __construct(
+        protected string $title,
+        protected string $value,
     ) {}
 
     public static function make(string $title, string $value): static

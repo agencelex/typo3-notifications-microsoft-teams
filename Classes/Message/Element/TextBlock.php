@@ -17,21 +17,21 @@ use Lex\Notifications\MicrosoftTeams\Message\Contract\Renderable;
  *       ->color('Accent')
  *       ->wrap(true)
  */
-final class TextBlock implements Renderable
+class TextBlock implements Renderable
 {
     use HasCommonBodyProperties;
 
-    private ?string $color = null;
-    private ?string $fontType = null;
-    private ?string $horizontalAlignment = null;
-    private ?bool $isSubtle = null;
-    private ?int $maxLines = null;
-    private ?string $size = null;
-    private ?string $style = null;
-    private ?string $weight = null;
-    private ?bool $wrap = null;
+    protected ?string $color = null;
+    protected ?string $fontType = null;
+    protected ?string $horizontalAlignment = null;
+    protected ?bool $isSubtle = null;
+    protected ?int $maxLines = null;
+    protected ?string $size = null;
+    protected ?string $style = null;
+    protected ?string $weight = null;
+    protected ?bool $wrap = true;
 
-    private function __construct(private string $text) {}
+    protected function __construct(protected string $text) {}
 
     public static function make(string $text): static
     {

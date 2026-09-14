@@ -9,12 +9,12 @@ namespace Lex\Notifications\MicrosoftTeams\Message\Concern;
  */
 trait HasCommonActionProperties
 {
-    private ?string $id = null;
-    private ?string $iconUrl = null;
-    private ?string $style = null;
-    private ?string $tooltip = null;
-    private ?bool $isEnabled = null;
-    private ?string $mode = null;
+    protected ?string $id = null;
+    protected ?string $iconUrl = null;
+    protected ?string $style = null;
+    protected ?string $tooltip = null;
+    protected ?bool $isEnabled = null;
+    protected ?string $mode = null;
 
     /**
      * Unique action identifier.

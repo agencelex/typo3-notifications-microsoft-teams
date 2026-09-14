@@ -16,14 +16,14 @@ use Lex\Notifications\MicrosoftTeams\Message\Contract\Renderable;
  *       Image::make('https://example.com/b.png'),
  *   ])->size('Small')
  */
-final class ImageSet implements Renderable
+class ImageSet implements Renderable
 {
     use HasCommonBodyProperties;
 
-    private ?string $imageSize = null;
+    protected ?string $imageSize = null;
 
     /** @param Image[] $images */
-    private function __construct(private array $images = []) {}
+    protected function __construct(protected array $images = []) {}
 
     /** @param Image[] $images */
     public static function make(array $images = []): static

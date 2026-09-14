@@ -24,22 +24,22 @@ use Lex\Notifications\MicrosoftTeams\Message\Contract\Renderable;
  *           Action\OpenUrl::make('View', 'https://example.com'),
  *       ])
  */
-final class AdaptiveCard
+class AdaptiveCard
 {
-    private string $version = '1.6';
-    private ?string $minHeight = null;
-    private ?string $verticalContentAlignment = null;
-    private ?string $backgroundImage = null;
-    private ?string $speak = null;
-    private ?bool $rtl = null;
+    protected string $version = '1.5';
+    protected ?string $minHeight = null;
+    protected ?string $verticalContentAlignment = null;
+    protected ?string $backgroundImage = null;
+    protected ?string $speak = null;
+    protected ?bool $rtl = null;
 
     /** @var Renderable[] */
-    private array $body = [];
+    protected array $body = [];
 
     /** @var Renderable[] */
-    private array $actions = [];
+    protected array $actions = [];
 
-    private function __construct() {}
+    protected function __construct() {}
 
     public static function make(): static
     {

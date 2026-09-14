@@ -16,19 +16,19 @@ use Lex\Notifications\MicrosoftTeams\Message\Contract\Renderable;
  *       ->size('Medium')
  *       ->style('Person')
  */
-final class Image implements Renderable
+class Image implements Renderable
 {
     use HasCommonBodyProperties;
 
-    private ?string $altText = null;
-    private ?string $backgroundColor = null;
-    private ?string $horizontalAlignment = null;
-    private ?Renderable $selectAction = null;
-    private ?string $size = null;
-    private ?string $style = null;
-    private ?string $width = null;
+    protected ?string $altText = null;
+    protected ?string $backgroundColor = null;
+    protected ?string $horizontalAlignment = null;
+    protected ?Renderable $selectAction = null;
+    protected ?string $size = null;
+    protected ?string $style = null;
+    protected ?string $width = null;
 
-    private function __construct(private string $url) {}
+    private function __construct(protected string $url) {}
 
     public static function make(string $url): static
     {

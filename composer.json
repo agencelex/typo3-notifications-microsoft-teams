@@ -59,9 +59,7 @@
         "phpunit/phpunit": "^11.0",
         "saschaegerer/phpstan-typo3": "^1.0",
         "phpstan/extension-installer": "^1.4",
-        "symfony/var-dumper": "^7.0",
-
-        "agencelex/notifications": "dev-main"
+        "symfony/var-dumper": "^7.0"
     },
     "autoload-dev": {
         "psr-4": {

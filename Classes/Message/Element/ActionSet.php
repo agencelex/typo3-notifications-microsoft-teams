@@ -19,12 +19,12 @@ use Lex\Notifications\MicrosoftTeams\Message\Contract\Renderable;
  *       Action\Submit::make('Reject', ['action' => 'reject']),
  *   ])
  */
-final class ActionSet implements Renderable
+class ActionSet implements Renderable
 {
     use HasCommonBodyProperties;
 
     /** @param Renderable[] $actions */
-    private function __construct(private array $actions = []) {}
+    protected function __construct(protected array $actions = []) {}
 
     /** @param Renderable[] $actions */
     public static function make(array $actions = []): static

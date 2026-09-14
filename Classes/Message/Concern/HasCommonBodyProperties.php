@@ -9,11 +9,11 @@ namespace Lex\Notifications\MicrosoftTeams\Message\Concern;
  */
 trait HasCommonBodyProperties
 {
-    private ?string $id = null;
-    private ?bool $isVisible = null;
-    private ?bool $separator = null;
-    private ?string $spacing = null;
-    private ?string $height = null;
+    protected ?string $id = null;
+    protected ?bool $isVisible = null;
+    protected ?bool $separator = null;
+    protected ?string $spacing = null;
+    protected ?string $height = null;
 
     /**
      * Unique element identifier. Useful for ToggleVisibility actions.
@@ -25,7 +25,7 @@ trait HasCommonBodyProperties
     }
 
     /**
-     * Control initial visibility of this element.
+     * Control the initial visibility of this element.
      */
     public function isVisible(bool $visible = true): static
     {

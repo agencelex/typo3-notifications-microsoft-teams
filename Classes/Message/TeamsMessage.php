@@ -24,12 +24,12 @@ namespace Lex\Notifications\MicrosoftTeams\Message;
  *               ])
  *       );
  */
-final class TeamsMessage
+class TeamsMessage
 {
-    private ?string $webhookUrl = null;
-    private ?AdaptiveCard $card = null;
+    protected ?string $webhookUrl = null;
+    protected ?AdaptiveCard $card = null;
 
-    private function __construct() {}
+    protected function __construct() {}
 
     public static function create(): static
     {

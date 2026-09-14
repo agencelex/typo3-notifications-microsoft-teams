@@ -19,18 +19,18 @@ use Lex\Notifications\MicrosoftTeams\Message\Contract\Renderable;
  *       ])->width('stretch'),
  *   ])
  */
-final class ColumnSet implements Renderable
+class ColumnSet implements Renderable
 {
     use HasCommonBodyProperties;
 
-    private ?bool $bleed = null;
-    private ?string $horizontalAlignment = null;
-    private ?string $minHeight = null;
-    private ?Renderable $selectAction = null;
-    private ?string $style = null;
+    protected ?bool $bleed = null;
+    protected ?string $horizontalAlignment = null;
+    protected ?string $minHeight = null;
+    protected ?Renderable $selectAction = null;
+    protected ?string $style = null;
 
     /** @param Column[] $columns */
-    private function __construct(private array $columns = []) {}
+    protected function __construct(protected array $columns = []) {}
 
     /** @param Column[] $columns */
     public static function make(array $columns = []): static

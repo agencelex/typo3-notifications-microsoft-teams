@@ -17,12 +17,12 @@ use Lex\Notifications\MicrosoftTeams\Message\Contract\Renderable;
  *       Fact::make('Assignee', 'Jane Doe'),
  *   ])
  */
-final class FactSet implements Renderable
+class FactSet implements Renderable
 {
     use HasCommonBodyProperties;
 
     /** @param Fact[] $facts */
-    private function __construct(private array $facts = []) {}
+    protected function __construct(protected array $facts = []) {}
 
     /** @param Fact[] $facts */
     public static function make(array $facts = []): static
