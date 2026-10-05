@@ -48,53 +48,44 @@ class TeamsChannel implements ChannelInterface, LoggerAwareInterface
 
     public function send(object $notifiable, Notification $notification): void
     {
-        $message = $this->getMessage($notifiable, $notification);
+        $webhookUrl = $notifiable->routeNotificationFor(self::CHANNEL, $notification);
 
-        $webhookUrl = $message->getWebhookUrl();
+        if(!empty($webhookUrl)) {
 
-        if ($webhookUrl === null && method_exists($notifiable, 'routeNotificationForTeams')) {
-            $webhookUrl = $notifiable->routeNotificationForTeams();
-        }
+            $message = $this->getMessage($notifiable, $notification);
 
-        if (empty($webhookUrl)) {
-            $this->logger?->warning(
-                'TeamsChannel: no webhook URL resolved for notification {notification}.',
-                ['notification' => $notification->getType()],
-            );
-            return;
-        }
+            $payload = json_encode($message->toArray(), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
 
-        $payload = json_encode($message->toArray(), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+            try {
+                $response = $this->requestFactory->request($webhookUrl, 'POST', [
+                    'headers' => [
+                        'Content-Type' => 'application/json',
+                    ],
+                    'body' => $payload,
+                ]);
 
-        try {
-            $response = $this->requestFactory->request($webhookUrl, 'POST', [
-                'headers' => [
-                    'Content-Type' => 'application/json',
-                ],
-                'body' => $payload,
-            ]);
+                $statusCode = $response->getStatusCode();
 
-            $statusCode = $response->getStatusCode();
-
-            if ($statusCode < 200 || $statusCode >= 300) {
-                $this->logger?->warning(
-                    'TeamsChannel: webhook returned HTTP {status} for notification {notification}.',
+                if ($statusCode < 200 || $statusCode >= 300) {
+                    $this->logger?->warning(
+                        'TeamsChannel: webhook returned HTTP {status} for notification {notification}.',
+                        [
+                            'status' => $statusCode,
+                            'notification' => $notification->getType(),
+                            'response' => (string) $response->getBody(),
+                        ],
+                    );
+                }
+            } catch (\Throwable $exception) {
+                $this->logger?->error(
+                    'TeamsChannel: failed to deliver notification {notification}: {message}',
                     [
-                        'status' => $statusCode,
                         'notification' => $notification->getType(),
-                        'response' => (string) $response->getBody(),
+                        'message' => $exception->getMessage(),
+                        'exception' => $exception,
                     ],
                 );
             }
-        } catch (\Throwable $exception) {
-            $this->logger?->error(
-                'TeamsChannel: failed to deliver notification {notification}: {message}',
-                [
-                    'notification' => $notification->getType(),
-                    'message' => $exception->getMessage(),
-                    'exception' => $exception,
-                ],
-            );
         }
     }
 

@@ -85,7 +85,7 @@ class HelloTeamsNotification extends Notification
 
     public function via(object $notifiable): array
     {
-        return [TeamsChannel::CHANNEL];
+        return ['teams'];
     }
 
     public function toTeams(object $notifiable): TeamsMessage
@@ -108,8 +108,11 @@ class HelloTeamsNotification extends Notification
 Send it from anywhere:
 
 ```php
-// Inject NotificationDispatcherInterface via constructor
+// 1. Inject NotificationDispatcherInterface via constructor or get it from GeneralUtility::makeInstance()
+// 2. Use one of the multiple ways to send the notification
 $this->notificationDispatcher->send($frontendUser, new HelloTeamsNotification());
+// Even easier: use the on-demand notification feature
+$this->notificationDispatcher->route('teams', $webhookUrl)->notify(new HelloTeamsNotification());
 ```
 
 ---
@@ -137,7 +140,7 @@ class MyNotification extends Notification
 {
     use CanSendToTeams;
 
-    // Enforced by the trait — omitting this causes a fatal error
+    // Enforced by the trait
     public function toTeams(object $notifiable): TeamsMessage
     {
         return TeamsMessage::create()->card(AdaptiveCard::make()->body([...]));
@@ -158,6 +161,7 @@ Lex\Notifications\MicrosoftTeams\Domain\Model\Ability\HasRouteNotificationForTea
 Add this trait to the **notifiable model** (e.g. a `FrontendUser`, a `BackendUser`, or any domain entity using the `Notifiable` trait) to declare that it can provide a Teams webhook URL. The trait enforces that the class implements `routeNotificationForTeams(): string`.
 
 ```php
+use Lex\Notifications\Notification;
 use Lex\Notifications\Domain\Model\Ability\Notifiable;
 use Lex\Notifications\MicrosoftTeams\Domain\Model\Ability\HasRouteNotificationForTeams;
 
@@ -166,50 +170,11 @@ class MyFrontendUser extends AbstractEntity
     use Notifiable;
     use HasRouteNotificationForTeams;
 
-    public function routeNotificationForTeams(): string
+    public function routeNotificationForTeams(?Notification $notification = null): ?string
     {
-        return 'https://prod.webhook.office.com/webhookb2/...';
-    }
-}
-```
-
----
-
-## Routing the Webhook URL
-
-The channel resolves the webhook URL in this order — the first non-empty value wins:
-
-| Priority | Source | How |
-|----------|--------|-----|
-| 1 (highest) | `TeamsMessage::webhookUrl()` | Call `->webhookUrl('https://…')` when building the message |
-| 2 | Notifiable model | Implement `routeNotificationForTeams(): string` (via `HasRouteNotificationForTeams`) |
-
-### Option A — Per-message (highest priority)
-
-Useful when the URL differs per notification, or when the notifiable has no concept of a webhook URL:
-
-```php
-public function toTeams(object $notifiable): TeamsMessage
-{
-    return TeamsMessage::create()
-        ->webhookUrl('https://prod.webhook.office.com/webhookb2/...')
-        ->card(AdaptiveCard::make()->body([...]));
-}
-```
-
-### Option B — On the notifiable model (recommended for most cases)
-
-The channel automatically calls `routeNotificationForTeams()` when no URL is set on the message:
-
-```php
-class Department extends AbstractEntity
-{
-    use Notifiable;
-    use HasRouteNotificationForTeams;
-
-    public function routeNotificationForTeams(): string
-    {
-        return $this->teamsWebhookUrl; // stored on the entity
+        // Implement the logic to get the webhook URL.
+        // You can also get it from the notification object if it exposes it.
+        return $settings['teams_webhook_url'] ?? null;
     }
 }
 ```
@@ -457,7 +422,7 @@ class OrderPlacedNotification extends Notification
 
     public function via(object $notifiable): array
     {
-        return [TeamsChannel::CHANNEL];
+        return ['teams'];
     }
 
     public function toTeams(object $notifiable): TeamsMessage
@@ -491,23 +456,11 @@ class OrderPlacedNotification extends Notification
 }
 ```
 
-The notifiable (e.g. the fulfilment channel entity) provides the webhook URL:
+Keep it simple by using the on-demand feature:
 
 ```php
-class FulfilmentChannel extends AbstractEntity
-{
-    use Notifiable;
-    use HasRouteNotificationForTeams;
-
-    public function routeNotificationForTeams(): string
-    {
-        return $this->teamsWebhookUrl;
-    }
-}
-```
-
-```php
-$this->notificationDispatcher->send($fulfilmentChannel, new OrderPlacedNotification($order));
+$this->notificationDispatcher->route('teams', $this->extensionConfiguration['notifications']['channels']['teams']['fulfilment'] ?? null)
+    ->notify(new OrderPlacedNotification($order));
 ```
 
 ---
@@ -537,18 +490,16 @@ class ServerAlertNotification extends Notification
         private readonly string $value,
         private readonly string $threshold,
         private readonly string $dashboardUrl,
-        private readonly string $webhookUrl,
     ) {}
 
     public function via(object $notifiable): array
     {
-        return [TeamsChannel::CHANNEL];
+        return ['teams'];
     }
 
     public function toTeams(object $notifiable): TeamsMessage
     {
         return TeamsMessage::create()
-            ->webhookUrl($this->webhookUrl) // URL embedded directly — no notifiable routing needed
             ->card(
                 AdaptiveCard::make()
                     ->body([
@@ -576,15 +527,15 @@ class ServerAlertNotification extends Notification
 ```
 
 ```php
-// Dispatch from a Scheduler task — no special notifiable needed
-$this->notificationDispatcher->send(new \stdClass(), new ServerAlertNotification(
-    serverName:   'prod-web-01',
-    metric:       'CPU Usage',
-    value:        '98%',
-    threshold:    '85%',
-    dashboardUrl: 'https://grafana.internal/d/servers',
-    webhookUrl:   'https://prod.webhook.office.com/webhookb2/...',
-));
+// Dispatch
+$this->notificationDispatcher->route('teams', $criticalAlertWebhookUrl)
+    ->notifyNow(new ServerAlertNotification(
+        serverName:   'prod-web-01',
+        metric:       'CPU Usage',
+        value:        '98%',
+        threshold:    '85%',
+        dashboardUrl: 'https://grafana.internal/d/servers',
+    ));
 ```
 
 ---
@@ -595,7 +546,6 @@ Posts a profile card with a person-style avatar when a new frontend user registe
 
 ```php
 use Lex\Notifications\Notification;
-use Lex\Notifications\MicrosoftTeams\Channel\TeamsChannel;
 use Lex\Notifications\MicrosoftTeams\Domain\Model\Ability\CanSendToTeams;
 use Lex\Notifications\MicrosoftTeams\Message\Action\OpenUrl;
 use Lex\Notifications\MicrosoftTeams\Message\AdaptiveCard;
@@ -615,7 +565,7 @@ class UserRegisteredNotification extends Notification
 
     public function via(object $notifiable): array
     {
-        return [TeamsChannel::CHANNEL];
+        return ['teams'];
     }
 
     public function toTeams(object $notifiable): TeamsMessage
@@ -668,7 +618,6 @@ Sent to the editorial team when an editor submits a page for review. Uses `Toggl
 
 ```php
 use Lex\Notifications\Notification;
-use Lex\Notifications\MicrosoftTeams\Channel\TeamsChannel;
 use Lex\Notifications\MicrosoftTeams\Domain\Model\Ability\CanSendToTeams;
 use Lex\Notifications\MicrosoftTeams\Message\Action\OpenUrl;
 use Lex\Notifications\MicrosoftTeams\Message\Action\ToggleVisibility;
@@ -691,7 +640,7 @@ class ContentApprovalRequestNotification extends Notification
 
     public function via(object $notifiable): array
     {
-        return [TeamsChannel::CHANNEL];
+        return ['teams'];
     }
 
     public function toTeams(object $notifiable): TeamsMessage
@@ -736,7 +685,6 @@ Both traits can be composed freely. Include `teams` alongside any other channel 
 ```php
 use Lex\Notifications\Notification;
 use Lex\Notifications\NotificationChannel;
-use Lex\Notifications\MicrosoftTeams\Channel\TeamsChannel;
 use Lex\Notifications\MicrosoftTeams\Domain\Model\Ability\CanSendToTeams;
 use Lex\Notifications\MicrosoftTeams\Message\AdaptiveCard;
 use Lex\Notifications\MicrosoftTeams\Message\Element\TextBlock;
@@ -755,7 +703,7 @@ class DeploymentFinishedNotification extends Notification
 
     public function via(object $notifiable): array
     {
-        return [TeamsChannel::CHANNEL, NotificationChannel::CHANNEL_MAIL];
+        return ['teams', NotificationChannel::CHANNEL_MAIL];
     }
 
     public function toTeams(object $notifiable): TeamsMessage
@@ -784,6 +732,18 @@ class DeploymentFinishedNotification extends Notification
             ->text("Version {$this->version} was deployed to {$this->environment}.");
     }
 }
+```
+
+Dispatch
+
+```php
+$this->notificationDispatcher->routes([
+    'teams' => $devWebhookUrl,
+    NotificationChannel::CHANNEL_MAIL => 'dev@example.com'
+])
+    ->notifyNow(new ServerAlertNotification(
+        ...
+    ));
 ```
 
 ---

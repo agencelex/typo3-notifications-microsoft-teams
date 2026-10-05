@@ -2,6 +2,8 @@
 
 namespace Lex\Notifications\MicrosoftTeams\Domain\Model\Ability;
 
+use Lex\Notifications\Notification;
+
 /**
  * Provides the default Teams webhook routing for a notifiable model.
  *
@@ -12,15 +14,12 @@ namespace Lex\Notifications\MicrosoftTeams\Domain\Model\Ability;
  *
  *   use HasRouteNotificationForTeams;
  *
- *   public function routeNotificationForTeams(): string
+ *   public function routeNotificationForTeams(?Notification $notification = null): ?string
  *   {
- *       return 'https://prod.webhook.office.com/webhookb2/...';
+ *       return $settings['teams_webhook_url'] ?? null;
  *   }
- *
- * You can also override the URL per-message inside the Notification itself
- * via TeamsMessage::webhookUrl(), which takes precedence over this method.
  */
 trait HasRouteNotificationForTeams
 {
-    abstract public function routeNotificationForTeams(): string;
+    abstract public function routeNotificationForTeams(?Notification $notification = null): ?string;
 }

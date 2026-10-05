@@ -33,7 +33,7 @@
     "require": {
         "php": "^8.2",
         "typo3/cms-core": "^13.4 || ^14.3",
-        "agencelex/notifications": "^1.3"
+        "agencelex/notifications": "^1.4"
     },
     "autoload": {
         "psr-4": {
@@ -54,11 +54,10 @@
         }
     },
     "require-dev": {
-        "b13/make": "^0.9 || ^1.0",
-        "typo3/coding-standards": "^0.8",
-        "typo3/testing-framework": "^8.0",
-        "phpunit/phpunit": "^11.0",
-        "saschaegerer/phpstan-typo3": "^1.0",
+        "typo3/coding-standards": "^0.8 || ^0.9",
+        "typo3/testing-framework": "^8.2 || ^9.0",
+        "phpunit/phpunit": "^11.2 || ^12.1",
+        "saschaegerer/phpstan-typo3": "^1.10 || ^2.0 || ^3.0",
         "phpstan/extension-installer": "^1.4",
         "symfony/var-dumper": "^7.0"
     },
