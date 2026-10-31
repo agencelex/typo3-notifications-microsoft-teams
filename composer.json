@@ -23,7 +23,7 @@
     "repositories": {
         "local-extensions": {
             "type": "path",
-            "url": "Tests/Packages/*"
+            "url": "packages/*"
         },
         "composer": {
             "type": "composer",
@@ -48,18 +48,23 @@
         "allow-plugins": {
             "composer/package-versions-deprecated": true,
             "php-http/discovery": true,
+            "phpstan/extension-installer": true,
             "tbachert/spi": true,
             "typo3/class-alias-loader": true,
             "typo3/cms-composer-installers": true
         }
     },
     "require-dev": {
-        "typo3/coding-standards": "^0.8 || ^0.9",
-        "typo3/testing-framework": "^8.2 || ^9.0",
+        "phpstan/extension-installer": "^1.4",
         "phpunit/phpunit": "^11.2 || ^12.1",
         "saschaegerer/phpstan-typo3": "^1.10 || ^2.0 || ^3.0",
-        "phpstan/extension-installer": "^1.4",
-        "symfony/var-dumper": "^7.0"
+        "symfony/var-dumper": "^7.0",
+        "typo3/cms-backend": "^13.4 || ^14.3",
+        "typo3/cms-extbase": "^13.4 || ^14.3",
+        "typo3/cms-fluid": "^13.4 || ^14.3",
+        "typo3/cms-frontend": "^13.4 || ^14.3",
+        "typo3/coding-standards": "^0.8 || ^0.9",
+        "typo3/testing-framework": "^8.2 || ^9.0"
     },
     "autoload-dev": {
         "psr-4": {

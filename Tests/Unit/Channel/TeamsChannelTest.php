@@ -6,10 +6,12 @@ namespace Lex\Notifications\MicrosoftTeams\Tests\Unit\Channel;
 
 use GuzzleHttp\Psr7\Response;
 use InvalidArgumentException;
+use Lex\Notifications\Domain\Model\Ability\Notifiable;
 use Lex\Notifications\MicrosoftTeams\Channel\TeamsChannel;
 use Lex\Notifications\MicrosoftTeams\Configuration\TeamsConfiguration;
 use Lex\Notifications\MicrosoftTeams\Configuration\TeamsRoute;
 use Lex\Notifications\MicrosoftTeams\Domain\Model\Ability\HasRouteNotificationForTeams;
+use Lex\Notifications\MicrosoftTeams\Extension;
 use Lex\Notifications\MicrosoftTeams\Message\TeamsMessage;
 use Lex\Notifications\Notification;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -40,7 +42,7 @@ final class TeamsChannelTest extends TestCase
     private static function notification(): Notification
     {
         return new class extends Notification {
-            public function via(object $notifiable): array { return ['teams']; }
+            public function via(object $notifiable): array { return [Extension::CHANNEL_NAME]; }
             public function toTeams(object $notifiable): TeamsMessage
             {
                 return TeamsMessage::create();
@@ -51,10 +53,13 @@ final class TeamsChannelTest extends TestCase
     private static function routedTo(mixed $route): object
     {
         return new class($route) {
+            use Notifiable;
+            use HasRouteNotificationForTeams;
+
             public function __construct(private readonly mixed $route) {}
-            public function routeNotificationFor(string $channel, Notification $notification): mixed
+            public function routeNotificationForTeams(?Notification $notification = null): TeamsRoute|string|null
             {
-                return $channel === 'teams' ? $this->route : null;
+                return $this->route;
             }
         };
     }
@@ -89,8 +94,8 @@ final class TeamsChannelTest extends TestCase
     {
         [, $factory] = self::factory();
 
-        self::assertSame('teams', self::channel($factory)->getName());
-        self::assertSame('teams', TeamsChannel::CHANNEL);
+        self::assertSame(Extension::CHANNEL_NAME, self::channel($factory)->getName());
+        self::assertSame(Extension::CHANNEL_NAME, TeamsChannel::CHANNEL);
     }
 
     /** @return iterable<string, array{TeamsRoute|string}> */
@@ -123,7 +128,7 @@ final class TeamsChannelTest extends TestCase
             public function routeNotificationFor(string $channel, Notification $notification): ?string
             {
                 $this->received = $notification;
-                return $channel === 'teams' ? 'webhook:monitoring' : null;
+                return $channel === Extension::CHANNEL_NAME ? 'webhook:monitoring' : null;
             }
         };
 
@@ -177,8 +182,8 @@ final class TeamsChannelTest extends TestCase
     {
         $this->assertRejectedBeforeRequest(
             self::routedTo($route),
-            InvalidArgumentException::class,
-            'Teams route must be TeamsRoute or a destination string.',
+            \TypeError::class,
+            'Return value must be of type Lex\Notifications\MicrosoftTeams\Configuration\TeamsRoute|string|null',
         );
     }
 
@@ -226,16 +231,12 @@ final class TeamsChannelTest extends TestCase
     public function stringRouteFromTheTraitIsAccepted(): void
     {
         $notifiable = new class {
+            use Notifiable;
             use HasRouteNotificationForTeams;
 
             public function routeNotificationForTeams(?Notification $notification = null): ?string
             {
                 return 'webhook:monitoring';
-            }
-
-            public function routeNotificationFor(string $channel, Notification $notification): mixed
-            {
-                return $this->routeNotificationForTeams($notification);
             }
         };
 
