@@ -3,6 +3,9 @@
 namespace Lex\Notifications\MicrosoftTeams\Channel;
 
 use Lex\Notifications\Channel\ChannelInterface;
+use Lex\Notifications\MicrosoftTeams\Configuration\TeamsConfiguration;
+use Lex\Notifications\MicrosoftTeams\Configuration\TeamsRoute;
+use Lex\Notifications\MicrosoftTeams\Extension;
 use Lex\Notifications\MicrosoftTeams\Message\TeamsMessage;
 use Lex\Notifications\Notification;
 use Psr\Log\LoggerAwareInterface;
@@ -18,8 +21,10 @@ use TYPO3\CMS\Core\Http\RequestFactory;
  *   1. In the target Teams channel, open "Workflows" (Power Automate).
  *   2. Add a "Post to a channel when a webhook request is received" flow.
  *   3. Copy the generated webhook URL.
- *   4. Provide the URL via TeamsMessage::webhookUrl() or by implementing
- *      routeNotificationForTeams(): string on the notifiable model.
+ *   4. Pass that URL, or a name configured under
+ *      $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['notifications_microsoft_teams']['webhooks'].
+ *      Prefer TeamsRoute::webhookNamed() when the notification can be queued:
+ *      the URL is a secret and is resolved only when the message is sent.
  *
  * Usage — extend TeamsNotification and implement toTeams():
  *
@@ -40,17 +45,18 @@ class TeamsChannel implements ChannelInterface, LoggerAwareInterface
 {
     use LoggerAwareTrait;
 
-    public const CHANNEL = 'teams';
+    public const CHANNEL = Extension::CHANNEL_NAME;
 
     public function __construct(
         private readonly RequestFactory $requestFactory,
+        private readonly TeamsConfiguration $configuration,
     ) {}
 
     public function send(object $notifiable, Notification $notification): void
     {
-        $webhookUrl = $notifiable->routeNotificationFor(self::CHANNEL, $notification);
+        $webhookUrl = $this->resolveWebhookUrl($notifiable, $notification);
 
-        if(!empty($webhookUrl)) {
+        if ($webhookUrl !== null) {
 
             $message = $this->getMessage($notifiable, $notification);
 
@@ -87,6 +93,36 @@ class TeamsChannel implements ChannelInterface, LoggerAwareInterface
                 );
             }
         }
+    }
+
+    private function resolveWebhookUrl(object $notifiable, Notification $notification): ?string
+    {
+        if (!method_exists($notifiable, 'routeNotificationFor')) {
+            throw new \InvalidArgumentException('Notifiable must implement routeNotificationFor().');
+        }
+
+        $rawRoute = $notifiable->routeNotificationFor(self::CHANNEL, $notification);
+        if ($rawRoute === null || $rawRoute === '') {
+            return null;
+        }
+
+        $route = match (true) {
+            $rawRoute instanceof TeamsRoute => $rawRoute,
+            is_string($rawRoute) => TeamsRoute::fromString($rawRoute),
+            default => throw new \InvalidArgumentException('Teams route must be TeamsRoute or a destination string.'),
+        };
+
+        return match ($route->transport) {
+            Extension::TRANSPORT_NAME_WEBHOOK => self::directWebhookUrl($route->destination),
+            Extension::TRANSPORT_NAME_WEBHOOK_NAMED => $this->configuration->namedWebhook($route->destination),
+            default => throw new \InvalidArgumentException('Unknown Microsoft Teams transport.'),
+        };
+    }
+
+    private static function directWebhookUrl(string $url): string
+    {
+        TeamsRoute::assertWebhookUrl($url);
+        return $url;
     }
 
     public function getName(): string

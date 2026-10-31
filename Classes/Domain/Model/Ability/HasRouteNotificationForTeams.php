@@ -2,24 +2,25 @@
 
 namespace Lex\Notifications\MicrosoftTeams\Domain\Model\Ability;
 
+use Lex\Notifications\MicrosoftTeams\Configuration\TeamsRoute;
 use Lex\Notifications\Notification;
 
 /**
  * Provides the default Teams webhook routing for a notifiable model.
  *
- * Implement routeNotificationForTeams() and return the Incoming Webhook URL
- * for the Teams channel that should receive notifications for this entity.
+ * Implement routeNotificationForTeams() and return a webhook URL or a name
+ * configured in the extension's webhooks map.
  *
  * Example usage on a notifiable model:
  *
  *   use HasRouteNotificationForTeams;
  *
- *   public function routeNotificationForTeams(?Notification $notification = null): ?string
+ *   public function routeNotificationForTeams(?Notification $notification = null): TeamsRoute|string|null
  *   {
- *       return $settings['teams_webhook_url'] ?? null;
+ *       return TeamsRoute::webhookNamed('monitoring');
  *   }
  */
 trait HasRouteNotificationForTeams
 {
-    abstract public function routeNotificationForTeams(?Notification $notification = null): ?string;
+    abstract public function routeNotificationForTeams(?Notification $notification = null): TeamsRoute|string|null;
 }

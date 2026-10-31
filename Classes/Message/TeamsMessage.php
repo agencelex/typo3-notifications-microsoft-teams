@@ -5,15 +5,14 @@ namespace Lex\Notifications\MicrosoftTeams\Message;
 /**
  * Wraps an AdaptiveCard into the Microsoft Teams Workflow webhook payload.
  *
- * The webhook URL can be set directly on the message or resolved at send time
- * via the notifiable's routeNotificationForTeams() method.
+ * The destination is the notifiable route: an HTTPS webhook URL, or a webhook
+ * name configured for this extension. See TeamsRoute.
  *
  * @see https://learn.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/how-to/add-incoming-webhook
  *
  * Example — inside a Notification::toTeams() method:
  *
  *   return TeamsMessage::create()
- *       ->webhookUrl('https://prod.webhook.office.com/webhookb2/...')
  *       ->card(
  *           AdaptiveCard::make()
  *               ->body([
@@ -37,10 +36,10 @@ class TeamsMessage
     }
 
     /**
-     * Override the webhook URL for this specific message.
+     * Remember a webhook URL on this message.
      *
-     * When omitted, TeamsChannel falls back to the notifiable's
-     * routeNotificationForTeams() method.
+     * TeamsChannel delivers to the notifiable route (a webhook URL or a
+     * configured webhook name) and does not read this value.
      */
     public function webhookUrl(string $url): static
     {

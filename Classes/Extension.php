@@ -15,6 +15,12 @@ namespace Lex\Notifications\MicrosoftTeams;
 final class Extension {
     public const KEY = 'notifications_microsoft_teams';
 
+    public const CHANNEL_NAME = 'teams';
+
+    public const TRANSPORT_NAME_WEBHOOK = 'webhook';
+
+    public const TRANSPORT_NAME_WEBHOOK_NAMED = 'webhook_named';
+
     public static function extensionKeyCamelCase() : string
     {
         return join('', array_map('ucfirst', explode('_', Extension::KEY)));

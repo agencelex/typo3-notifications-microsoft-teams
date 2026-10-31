@@ -8,6 +8,7 @@ Microsoft Teams channel provider for [lex_notifications](https://github.com/agen
 
 - [Requirements](#requirements)
 - [Installation](#installation)
+- [Configuration](#configuration)
 - [Setting Up a Teams Webhook](#setting-up-a-teams-webhook)
 - [Quick Start](#quick-start)
 - [Core Concepts](#core-concepts)
@@ -54,6 +55,25 @@ Activate the extension in the TYPO3 Extension Manager or via `composer` (Compose
 
 ---
 
+## Configuration
+
+Named webhooks live in the TYPO3 extension configuration for `notifications_microsoft_teams`. Add them in the installation's `config/system/additional.php`. `Configuration/ExampleAdditional.php` is a reference and is not loaded by TYPO3.
+
+```php
+$GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['notifications_microsoft_teams'] = [
+    'webhooks' => [
+        'monitoring' => getenv('TEAMS_WEBHOOK_MONITORING') ?: '',
+        'fulfilment' => getenv('TEAMS_WEBHOOK_FULFILMENT') ?: '',
+    ],
+];
+```
+
+A name such as `monitoring` can be passed anywhere a webhook URL is accepted. The URL is read from this map when the message is sent, so a queued notification stores the name and leaves the secret URL in configuration.
+
+Aliases start with a letter and may contain letters, numbers, underscores, and hyphens, up to 64 characters.
+
+---
+
 ## Setting Up a Teams Webhook
 
 This extension sends messages via the **Teams Workflows** webhook (the modern replacement for the deprecated Office 365 Connectors).
@@ -62,7 +82,7 @@ This extension sends messages via the **Teams Workflows** webhook (the modern re
 2. Click **…** → **Workflows**.
 3. Search for **"Post to a channel when a webhook request is received"** and select it.
 4. Follow the wizard — give it a name and click **Next**.
-5. Copy the generated **webhook URL** (it looks like `https://prod.webhook.office.com/webhookb2/…`).
+5. Copy the generated **webhook URL**. Workflow URLs look like `https://….environment.api.powerplatform.com/powerautomate/automations/direct/workflows/…?sig=…` or `https://….logic.azure.com/workflows/…?sig=…`. Older connector URLs look like `https://….webhook.office.com/webhookb2/…`.
 
 > **Official guide:** [Create an Incoming Webhook — Microsoft Learn](https://learn.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/how-to/add-incoming-webhook)
 
@@ -78,6 +98,7 @@ use Lex\Notifications\MicrosoftTeams\Message\AdaptiveCard;
 use Lex\Notifications\MicrosoftTeams\Message\Action\OpenUrl;
 use Lex\Notifications\MicrosoftTeams\Message\Element\TextBlock;
 use Lex\Notifications\MicrosoftTeams\Message\TeamsMessage;
+use Lex\Notifications\MicrosoftTeams\Extension;
 
 class HelloTeamsNotification extends Notification
 {
@@ -85,7 +106,7 @@ class HelloTeamsNotification extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['teams'];
+        return [Extension::CHANNEL_NAME];
     }
 
     public function toTeams(object $notifiable): TeamsMessage
@@ -108,11 +129,18 @@ class HelloTeamsNotification extends Notification
 Send it from anywhere:
 
 ```php
-// 1. Inject NotificationDispatcherInterface via constructor or get it from GeneralUtility::makeInstance()
-// 2. Use one of the multiple ways to send the notification
+use Lex\Notifications\MicrosoftTeams\Configuration\TeamsRoute;
+use Lex\Notifications\MicrosoftTeams\Extension;
+
+// Inject NotificationDispatcherInterface via constructor or get it from GeneralUtility::makeInstance()
 $this->notificationDispatcher->send($frontendUser, new HelloTeamsNotification());
-// Even easier: use the on-demand notification feature
-$this->notificationDispatcher->route('teams', $webhookUrl)->notify(new HelloTeamsNotification());
+
+// Configured name. Preferred when the notification may be queued.
+$this->notificationDispatcher->route(Extension::CHANNEL_NAME, TeamsRoute::webhookNamed('monitoring'))->notify(new HelloTeamsNotification());
+$this->notificationDispatcher->route(Extension::CHANNEL_NAME, 'webhook:monitoring')->notify(new HelloTeamsNotification());
+
+// Direct webhook URL.
+$this->notificationDispatcher->route(Extension::CHANNEL_NAME, $webhookUrl)->notify(new HelloTeamsNotification());
 ```
 
 ---
@@ -158,11 +186,12 @@ class MyNotification extends Notification
 Lex\Notifications\MicrosoftTeams\Domain\Model\Ability\HasRouteNotificationForTeams
 ```
 
-Add this trait to the **notifiable model** (e.g. a `FrontendUser`, a `BackendUser`, or any domain entity using the `Notifiable` trait) to declare that it can provide a Teams webhook URL. The trait enforces that the class implements `routeNotificationForTeams(): string`.
+Add this trait to the **notifiable model** (e.g. a `FrontendUser`, a `BackendUser`, or any domain entity using the `Notifiable` trait) to declare that it can provide a Teams destination. The trait enforces that the class implements `routeNotificationForTeams()`.
 
 ```php
 use Lex\Notifications\Notification;
 use Lex\Notifications\Domain\Model\Ability\Notifiable;
+use Lex\Notifications\MicrosoftTeams\Configuration\TeamsRoute;
 use Lex\Notifications\MicrosoftTeams\Domain\Model\Ability\HasRouteNotificationForTeams;
 
 class MyFrontendUser extends AbstractEntity
@@ -170,14 +199,43 @@ class MyFrontendUser extends AbstractEntity
     use Notifiable;
     use HasRouteNotificationForTeams;
 
-    public function routeNotificationForTeams(?Notification $notification = null): ?string
+    public function routeNotificationForTeams(?Notification $notification = null): TeamsRoute|string|null
     {
-        // Implement the logic to get the webhook URL.
-        // You can also get it from the notification object if it exposes it.
-        return $settings['teams_webhook_url'] ?? null;
+        return TeamsRoute::webhookNamed('monitoring');
     }
 }
 ```
+
+---
+
+## Routing the Webhook URL
+
+Pass a configured name or an HTTPS webhook URL. `TeamsChannel` accepts:
+
+| Route | Example |
+|-------|---------|
+| Named webhook | `TeamsRoute::webhookNamed('monitoring')` |
+| Name as a string | `'webhook:monitoring'` or `'monitoring'` |
+| Direct URL | `'https://….logic.azure.com/workflows/…?sig=…'` or `TeamsRoute::webhook($url)` |
+
+```php
+use Lex\Notifications\MicrosoftTeams\Configuration\TeamsRoute;
+use Lex\Notifications\MicrosoftTeams\Extension;
+
+$this->notificationDispatcher
+    ->route(Extension::CHANNEL_NAME, TeamsRoute::webhookNamed('monitoring'))
+    ->notify(new HelloTeamsNotification());
+```
+
+The name must exist in `webhooks` inside `$GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['notifications_microsoft_teams']`. The channel resolves it when sending. A missing name, or a URL on another host, fails before the HTTP request.
+
+`TeamsRoute::webhook()` and a raw `https://` string accept:
+
+- Workflow URLs on `*.environment.api.powerplatform.com` (path `/powerautomate/automations/direct/workflows/…/triggers/…`, with a `sig` query parameter)
+- Workflow URLs on `*.logic.azure.com`, `*.logic.azure.us`, and `*.logic.azure.cn` (path `/workflows/…/triggers/…`, with a `sig` query parameter)
+- Legacy connector URLs on `*.webhook.office.com`, `outlook.office.com`, and `outlook.office365.com`
+
+A direct URL is a credential. A named webhook stores only the alias, including when the notification is serialized onto a queue.
 
 ---
 
@@ -405,6 +463,7 @@ Notifies the fulfilment team when a new order is placed.
 
 ```php
 use Lex\Notifications\Notification;
+use Lex\Notifications\MicrosoftTeams\Extension;
 use Lex\Notifications\MicrosoftTeams\Channel\TeamsChannel;
 use Lex\Notifications\MicrosoftTeams\Domain\Model\Ability\CanSendToTeams;
 use Lex\Notifications\MicrosoftTeams\Message\Action\OpenUrl;
@@ -422,7 +481,7 @@ class OrderPlacedNotification extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['teams'];
+        return [Extension::CHANNEL_NAME];
     }
 
     public function toTeams(object $notifiable): TeamsMessage
@@ -459,7 +518,9 @@ class OrderPlacedNotification extends Notification
 Keep it simple by using the on-demand feature:
 
 ```php
-$this->notificationDispatcher->route('teams', $this->extensionConfiguration['notifications']['channels']['teams']['fulfilment'] ?? null)
+use Lex\Notifications\MicrosoftTeams\Configuration\TeamsRoute;
+
+$this->notificationDispatcher->route(Extension::CHANNEL_NAME, TeamsRoute::webhookNamed('fulfilment'))
     ->notify(new OrderPlacedNotification($order));
 ```
 
@@ -471,6 +532,7 @@ Sends a critical alert with severity colour coding when a monitor threshold is e
 
 ```php
 use Lex\Notifications\Notification;
+use Lex\Notifications\MicrosoftTeams\Extension;
 use Lex\Notifications\MicrosoftTeams\Channel\TeamsChannel;
 use Lex\Notifications\MicrosoftTeams\Domain\Model\Ability\CanSendToTeams;
 use Lex\Notifications\MicrosoftTeams\Message\Action\OpenUrl;
@@ -494,7 +556,7 @@ class ServerAlertNotification extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['teams'];
+        return [Extension::CHANNEL_NAME];
     }
 
     public function toTeams(object $notifiable): TeamsMessage
@@ -546,6 +608,7 @@ Posts a profile card with a person-style avatar when a new frontend user registe
 
 ```php
 use Lex\Notifications\Notification;
+use Lex\Notifications\MicrosoftTeams\Extension;
 use Lex\Notifications\MicrosoftTeams\Domain\Model\Ability\CanSendToTeams;
 use Lex\Notifications\MicrosoftTeams\Message\Action\OpenUrl;
 use Lex\Notifications\MicrosoftTeams\Message\AdaptiveCard;
@@ -565,7 +628,7 @@ class UserRegisteredNotification extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['teams'];
+        return [Extension::CHANNEL_NAME];
     }
 
     public function toTeams(object $notifiable): TeamsMessage
@@ -618,6 +681,7 @@ Sent to the editorial team when an editor submits a page for review. Uses `Toggl
 
 ```php
 use Lex\Notifications\Notification;
+use Lex\Notifications\MicrosoftTeams\Extension;
 use Lex\Notifications\MicrosoftTeams\Domain\Model\Ability\CanSendToTeams;
 use Lex\Notifications\MicrosoftTeams\Message\Action\OpenUrl;
 use Lex\Notifications\MicrosoftTeams\Message\Action\ToggleVisibility;
@@ -640,7 +704,7 @@ class ContentApprovalRequestNotification extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['teams'];
+        return [Extension::CHANNEL_NAME];
     }
 
     public function toTeams(object $notifiable): TeamsMessage
@@ -684,6 +748,7 @@ Both traits can be composed freely. Include `teams` alongside any other channel 
 
 ```php
 use Lex\Notifications\Notification;
+use Lex\Notifications\MicrosoftTeams\Extension;
 use Lex\Notifications\NotificationChannel;
 use Lex\Notifications\MicrosoftTeams\Domain\Model\Ability\CanSendToTeams;
 use Lex\Notifications\MicrosoftTeams\Message\AdaptiveCard;
@@ -703,7 +768,7 @@ class DeploymentFinishedNotification extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['teams', NotificationChannel::CHANNEL_MAIL];
+        return [Extension::CHANNEL_NAME, NotificationChannel::CHANNEL_MAIL];
     }
 
     public function toTeams(object $notifiable): TeamsMessage
@@ -738,7 +803,7 @@ Dispatch
 
 ```php
 $this->notificationDispatcher->routes([
-    'teams' => $devWebhookUrl,
+    Extension::CHANNEL_NAME => $devWebhookUrl,
     NotificationChannel::CHANNEL_MAIL => 'dev@example.com'
 ])
     ->notifyNow(new ServerAlertNotification(
