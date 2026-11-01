@@ -38,6 +38,11 @@ final class TeamsRouteTest extends TestCase
             'webhook',
             'https://prod-00.westeurope.logic.azure.com/workflows/abc/triggers/manual/paths/invoke?sig=SECRET',
         ];
+        yield 'workflow url with explicit port' => [
+            'https://prod-00.westeurope.logic.azure.com:443/workflows/abc/triggers/manual/paths/invoke?sig=SECRET',
+            'webhook',
+            'https://prod-00.westeurope.logic.azure.com:443/workflows/abc/triggers/manual/paths/invoke?sig=SECRET',
+        ];
         yield 'Azure Government workflow' => [
             'https://prod-00.usgov.logic.azure.us/workflows/abc/triggers/manual/paths/invoke?sig=SECRET',
             'webhook',
@@ -48,8 +53,20 @@ final class TeamsRouteTest extends TestCase
             'webhook',
             'https://prod-00.china.logic.azure.cn/workflows/abc/triggers/manual/paths/invoke?sig=SECRET',
         ];
-        yield 'Power Platform workflow' => [self::POWER_PLATFORM, 'webhook', self::POWER_PLATFORM];
-        yield 'legacy connector' => [self::LEGACY, 'webhook', self::LEGACY];
+        yield 'Power Platform workflow without compute unit' => [self::POWER_PLATFORM, 'webhook', self::POWER_PLATFORM];
+        yield 'Power Platform workflow with compute unit' => [
+            'https://default0123456789abcdef.a0.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/14/workflows/abc/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=SECRET',
+            'webhook',
+            'https://default0123456789abcdef.a0.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/14/workflows/abc/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=SECRET',
+        ];
+        foreach (self::sovereignPowerPlatformHosts() as $cloud => $host) {
+            foreach (['without compute unit' => '', 'with compute unit' => 'cu/14/'] as $variant => $computeUnit) {
+                $url = 'https://env.aa.' . $host . ':443/powerautomate/automations/direct/'
+                    . $computeUnit . 'workflows/abc/triggers/manual/paths/invoke?sig=SECRET';
+                yield $cloud . ' ' . $variant => [$url, 'webhook', $url];
+            }
+        }
+        yield 'legacy custom tenant host' => [self::LEGACY, 'webhook', self::LEGACY];
         yield 'legacy prod host' => [
             'https://prod.webhook.office.com/webhookb2/abc@def/IncomingWebhook/g/h',
             'webhook',
@@ -96,6 +113,16 @@ final class TeamsRouteTest extends TestCase
         yield 'host suffix attack' => ['https://logic.azure.com.evil.test/workflows/abc/triggers/manual/paths/invoke?sig=SECRET'];
         yield 'lookalike host' => ['https://notlogic.azure.com/workflows/abc/triggers/manual/paths/invoke?sig=SECRET'];
         yield 'power platform without workflow path' => ['https://env.aa.environment.api.powerplatform.com/workflows/abc/triggers/manual/paths/invoke?sig=SECRET'];
+        yield 'power platform empty compute unit' => ['https://env.aa.environment.api.powerplatform.com/powerautomate/automations/direct/cu//workflows/abc/triggers/manual/paths/invoke?sig=SECRET'];
+        yield 'power platform nonnumeric compute unit' => ['https://env.aa.environment.api.powerplatform.com/powerautomate/automations/direct/cu/abc/workflows/abc/triggers/manual/paths/invoke?sig=SECRET'];
+        yield 'power platform compute unit missing signature' => ['https://env.aa.environment.api.powerplatform.com/powerautomate/automations/direct/cu/14/workflows/abc/triggers/manual/paths/invoke'];
+        foreach (self::sovereignPowerPlatformHosts() as $cloud => $host) {
+            $path = '/powerautomate/automations/direct/cu/14/workflows/abc/triggers/manual/paths/invoke';
+            yield $cloud . ' missing signature' => ['https://env.aa.' . $host . $path];
+            yield $cloud . ' suffix attack' => ['https://env.aa.' . $host . '.evil.test' . $path . '?sig=SECRET'];
+            yield $cloud . ' lookalike host' => ['https://not' . $host . $path . '?sig=SECRET'];
+            yield $cloud . ' incorrect path' => ['https://env.aa.' . $host . '/workflows/abc/triggers/manual/paths/invoke?sig=SECRET'];
+        }
         yield 'named empty' => ['webhook:'];
         yield 'named path traversal' => ['webhook:../monitoring'];
         yield 'named starting with digit' => ['webhook:1monitoring'];
@@ -110,6 +137,15 @@ final class TeamsRouteTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
 
         TeamsRoute::fromString($destination);
+    }
+
+    /** @return iterable<string, string> */
+    private static function sovereignPowerPlatformHosts(): iterable
+    {
+        yield 'Power Platform US Government GCC' => 'environment.api.gov.powerplatform.microsoft.us';
+        yield 'Power Platform US Government GCC High' => 'environment.api.high.powerplatform.microsoft.us';
+        yield 'Power Platform US Government DoD' => 'environment.api.appsplatform.us';
+        yield 'Power Platform China 21Vianet' => 'environment.api.powerplatform.partner.microsoftonline.cn';
     }
 
     #[Test]

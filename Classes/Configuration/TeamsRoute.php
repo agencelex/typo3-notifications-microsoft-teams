@@ -104,8 +104,16 @@ final readonly class TeamsRoute
             return true;
         }
 
-        return self::hostIs($host, 'environment.api.powerplatform.com')
-            && preg_match('#^/powerautomate/automations/direct/workflows/[^/]+/triggers/#', $path) === 1;
+        // Power Automate HTTP trigger API domains, including sovereign clouds:
+        // https://learn.microsoft.com/en-us/power-automate/ip-address-configuration
+        $powerPlatform = self::hostIs($host, 'environment.api.powerplatform.com')
+            || self::hostIs($host, 'environment.api.gov.powerplatform.microsoft.us')
+            || self::hostIs($host, 'environment.api.high.powerplatform.microsoft.us')
+            || self::hostIs($host, 'environment.api.appsplatform.us')
+            || self::hostIs($host, 'environment.api.powerplatform.partner.microsoftonline.cn');
+
+        return $powerPlatform
+            && preg_match('#^/powerautomate/automations/direct/(?:cu/[0-9]+/)?workflows/[^/]+/triggers/#', $path) === 1;
     }
 
     private static function hostIs(string $host, string $suffix): bool
